@@ -1,0 +1,65 @@
+name: NAS monitor
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nas-monitor
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe NAS and notify
+        env:
+          NAS_URL: ${{ secrets.NAS_URL }}
+          NTFY_URL: ${{ secrets.NTFY_URL }}
+        run: |
+          set -uo pipefail
+
+          # Reachable if any HTTP response comes back within 3 tries.
+          up=false
+          for i in 1 2 3; do
+            if curl -k -sS -m 10 -o /dev/null "$NAS_URL"; then up=true; break; fi
+            sleep 10
+          done
+
+          prev=up
+          [ -f state.txt ] && prev=$(tr -d '[:space:]' < state.txt)
+          [ "$up" = true ] && cur=up || cur=down
+          echo "prev=$prev cur=$cur"
+
+          if [ "$cur" = down ]; then
+            # Nudge on every run while down.
+            curl -s \
+              -H "Title: NAS DOWN" \
+              -H "Priority: urgent" \
+              -H "Tags: rotating_light" \
+              -d "Synology NAS is unreachable. Mute this ntfy topic to silence; it stops on its own when the NAS is back." \
+              "$NTFY_URL" > /dev/null
+          elif [ "$prev" = down ]; then
+            # Recovery ping, sent once on the down -> up transition.
+            curl -s \
+              -H "Title: NAS back online" \
+              -H "Tags: white_check_mark" \
+              -d "Synology NAS is reachable again." \
+              "$NTFY_URL" > /dev/null
+          fi
+
+          # Persist state; commit only on a change to keep history clean.
+          if [ "$cur" != "$prev" ]; then
+            echo "$cur" > state.txt
+            git config user.name "nas-monitor[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add state.txt
+            git commit -m "state: $prev -> $cur"
+            git push
+          fi
