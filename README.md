@@ -39,6 +39,24 @@ logs and never exposed by a public repo.
    port (e.g. `https://your-ddns.synology.me:65000`) and run again — you should
    get a `NAS DOWN` push. Restore the real value after.
 
+## Trigger: cron-job.org
+
+GitHub's own `schedule:` cron proved unreliable at `*/5` (runs often never
+fired), so the workflow is actually driven by a free **cron-job.org** job that
+calls the dispatch API every 5 minutes:
+
+```
+POST https://api.github.com/repos/roypadina/nas-monitor/actions/workflows/nas-monitor.yml/dispatches
+Authorization: Bearer <fine-grained PAT, this repo only, Actions: read/write>
+{"ref":"main"}
+```
+
+The `schedule:` block stays as a fallback; `concurrency` keeps runs from
+overlapping. Dispatched runs also keep the 60-day inactivity pause (below) from
+applying. **The PAT expires** — when it does, cron-job.org gets a 401 and the
+pager silently stops. Rotate it before expiry and paste the new one into the
+job's `Authorization` header.
+
 ## Acknowledge / stop the nudge
 
 - **Mute** the ntfy topic in the app → instant silence, monitor keeps running.
