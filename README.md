@@ -53,9 +53,9 @@ Authorization: Bearer <fine-grained PAT, this repo only, Actions: read/write>
 
 The `schedule:` block stays as a fallback; `concurrency` keeps runs from
 overlapping. Dispatched runs also keep the 60-day inactivity pause (below) from
-applying. **The PAT expires** — when it does, cron-job.org gets a 401 and the
-pager silently stops. Rotate it before expiry and paste the new one into the
-job's `Authorization` header.
+applying. If the PAT expires or is revoked, cron-job.org gets a 401 and the
+pager stops — keep cron-job.org's failure email on, and paste any new token
+into the job's `Authorization` header.
 
 ## Acknowledge / stop the nudge
 
