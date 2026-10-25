@@ -27,7 +27,7 @@ logs and never exposed by a public repo.
 ## Setup (one time, ~3 min)
 
 1. **Install the ntfy app** (iOS / Android). Subscribe to a *secret* topic — the
-   random string IS the password, e.g. `nas-roy-9f3kx72q4w`. Set it to high
+   random string IS the password, e.g. `<your-topic>`. Set it to high
    priority + a loud sound.
 2. **Add repo Secrets** — Settings → Secrets and variables → Actions → New
    repository secret:
